@@ -11,9 +11,8 @@ local env = {
   },
 
   test_dependencies = {
+    "santoku-test >= 0.0.2-1",
     "luassert >= 1.9.0-1",
-    "luaposix >= 36.2.1-1",
-    "santoku >= 0.0.140-1",
     "luacheck >= 1.1.0-1",
     "luacov >= 0.15.0-1",
   },
