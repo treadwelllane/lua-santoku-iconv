@@ -26,8 +26,8 @@ test("iconv", function ()
 
   test("failing case", function ()
     assert.same(
-        { true, "a young woman's journey in which a ghostwriter investigates an arsonist while avoiding marriage" },
-        { iconv("a young woman's journey in which a ghostwriter investigates an arsonist while avoiding marriage", "utf-8", "ascii", "translit") })
+        { true, "a young woman's journey in which a ghostwriter investigates an arsonist while avoiding marriage" }, -- luacheck: ignore
+        { iconv("a young woman's journey in which a ghostwriter investigates an arsonist while avoiding marriage", "utf-8", "ascii", "translit") }) -- luacheck: ignore
   end)
 
 end)
