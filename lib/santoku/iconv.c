@@ -13,7 +13,7 @@
 
 // TODO: Duplicated across santoku-python, santoku-web, iconv, should be split
 // into separate library
-static void tk_lua_callmod (lua_State *L, int nargs, int nret, const char *smod, const char *sfn)
+static void tk_iconv_callmod (lua_State *L, int nargs, int nret, const char *smod, const char *sfn)
 {
   lua_getglobal(L, "require"); // arg req
   lua_pushstring(L, smod); // arg req smod
@@ -23,6 +23,14 @@ static void tk_lua_callmod (lua_State *L, int nargs, int nret, const char *smod,
   lua_remove(L, -2); // args fn
   lua_insert(L, - nargs - 1); // fn args
   lua_call(L, nargs, nret); // results
+}
+
+int tk_iconv_err (lua_State *L, int err)
+{
+  lua_pushstring(L, strerror(errno));
+  lua_pushinteger(L, err);
+  tk_iconv_callmod(L, 2, 0, "santoku.error", "error");
+  return 0;
 }
 
 int tk_iconv (lua_State *L)
@@ -58,10 +66,10 @@ int tk_iconv (lua_State *L)
   size_t inleft = inlen;
 
   lua_pushvalue(L, -2); // str from to from
-  tk_lua_callmod(L, 1, 1, "string", "upper"); // str from to from
+  tk_iconv_callmod(L, 1, 1, "string", "upper"); // str from to from
 
   lua_pushvalue(L, -2); // str from to from to
-  tk_lua_callmod(L, 1, 1, "string", "upper"); // str from to from to
+  tk_iconv_callmod(L, 1, 1, "string", "upper"); // str from to from to
 
   lua_remove(L, -3);
   lua_remove(L, -3); // str from to
@@ -77,13 +85,14 @@ int tk_iconv (lua_State *L)
   iconv_t ic = iconv_open(to, from);
 
   if (ic == ((iconv_t) -1))
-    goto err;
+    return tk_iconv_err(L, errno);
 
   outstart = malloc(outsize);
-  outnext = outstart;
 
   if (outstart == NULL)
-    goto err_mem;
+    return tk_iconv_err(L, errno);
+
+  outnext = outstart;
 
   while (1)
   {
@@ -91,47 +100,31 @@ int tk_iconv (lua_State *L)
 
     if (rc >= 0)
     {
-      lua_pushboolean(L, 1);
       lua_pushlstring(L, outstart, outsize - outleft);
       free(outstart);
 
       rc = iconv_close(ic);
 
       if (rc == -1)
-        goto err;
+        return tk_iconv_err(L, errno);
 
-      return 2;
+      return 1;
     }
 
     if (rc == -1 && errno != E2BIG)
-      goto err;
+      return tk_iconv_err(L, errno);
 
     if (rc == -1) {
       size_t len = outsize - outleft;
       outsize = outsize * 1.5;
       char *outstart0 = realloc(outstart, outsize);
       if (outstart0 == NULL)
-        goto err_mem;
+        return tk_iconv_err(L, errno);
       outleft = outsize - len;
       outstart = outstart0;
       outnext = outstart + len;
     }
   }
-
-err_mem:
-  free(outstart);
-  lua_pushboolean(L, 0);
-  lua_pushstring(L, "malloc failed");
-  return 2;
-
-err:
-  free(outstart);
-  int cd = errno;
-  const char *err = strerror(cd);
-  lua_pushboolean(L, 0);
-  lua_pushstring(L, err);
-  lua_pushinteger(L, cd);
-  return 3;
 }
 
 int luaopen_santoku_iconv (lua_State *L)
