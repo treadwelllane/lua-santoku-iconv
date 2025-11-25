@@ -24,7 +24,7 @@ env.tarball = env.name .. "-" .. env.version .. ".tar.gz"
 env.download = env.homepage .. "/releases/download/" .. env.version .. "/" .. env.tarball
 
 return {
-  type = "lib",
+  
   env = env,
 }
 
